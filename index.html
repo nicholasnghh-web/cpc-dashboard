@@ -175,7 +175,7 @@
       <div class="date-chip">Period: <strong id="current-month">—</strong></div>
       <div class="date-chip">Yesterday: <strong id="yesterday-date">—</strong></div>
       <div class="date-chip">Days elapsed: <strong id="days-elapsed">—</strong></div>
-      <div class="date-chip target">Monthly target: <strong>130,000 kWh · $42,000</strong></div>
+      <div class="date-chip target">Monthly target: <strong>130,000 kWh · ៛168,000,000</strong></div>
     </div>
 
     <div class="section-label">Yesterday's Summary</div>
@@ -200,8 +200,8 @@
       </div>
       <div class="kpi-card grey fade-in">
         <div class="kpi-icon">💵</div>
-        <div class="kpi-label">Total Cost (USD)</div>
-        <div class="kpi-value" id="yday-cost">—<span class="unit">USD</span></div>
+        <div class="kpi-label">Total Cost (KHR)</div>
+        <div class="kpi-value" id="yday-cost">—<span class="unit">KHR</span></div>
         <div class="kpi-delta neutral" id="yday-cost-delta">—</div>
       </div>
     </div>
@@ -293,7 +293,8 @@
 const SHEET_ID    = '1qtkWL_PJPSe8fVAw9xvXZeM-4dDt4raNJiJDr2FkCcE';
 const TARGET_KWH  = 130000;
 const TARGET_SESS = 10400;
-const TARGET_REV  = 42000;
+const TARGET_REV  = 168000000;   // KHR (was $42,000 USD; switched to Riel from Oct 2026)
+const USD_TO_KHR  = 4000;        // used only to convert pre-Oct-2026 USD rows to KHR
 const PASS        = 'cpc2026';
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
@@ -351,7 +352,9 @@ async function fetchAllRows() {
       duration: clean(r.c[3] && r.c[3].v),
       cost:     clean(r.c[4] && r.c[4].v),
     };
-  }).filter(r => r.date && !isNaN(r.date));
+  }).filter(r => r.date && !isNaN(r.date))
+    // Sheet holds USD up to Sep 2026 and KHR from 1 Oct 2026; normalise everything to KHR
+    .map(r => (r.date < new Date(2026,9,1)) ? {...r, cost: r.cost*USD_TO_KHR} : r);
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
@@ -359,7 +362,7 @@ const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'
 const MONTH_LONG  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 function fmt(n, dec=0)   { return Number(n).toLocaleString(undefined,{minimumFractionDigits:dec,maximumFractionDigits:dec}); }
-function fmtUSD(n)       { return '$'+fmt(n,2); }
+function fmtKHR(n)       { return '៛'+fmt(n,0); }
 function setPct(pid, bid, pct) {
   document.getElementById(pid).textContent = pct+'%';
   document.getElementById(bid).style.width = Math.min(pct,100)+'%';
@@ -426,7 +429,7 @@ async function initDashboard() {
   document.getElementById('yday-kwh').innerHTML  = fmt(lastRow.kwh,2)+'<span class="unit">kWh</span>';
   document.getElementById('yday-sess').innerHTML = lastRow.sessions+'<span class="unit">sessions</span>';
   document.getElementById('yday-dur').innerHTML  = hrsTotal+'<span class="unit">hrs</span>';
-  document.getElementById('yday-cost').innerHTML = fmtUSD(lastRow.cost)+'<span class="unit">USD</span>';
+  document.getElementById('yday-cost').innerHTML = fmtKHR(lastRow.cost)+'<span class="unit">KHR</span>';
 
   // 7-day avg delta
   const prev7 = allRows.slice(-8,-1);
@@ -457,8 +460,8 @@ async function initDashboard() {
   document.getElementById('kwh-sub-right').textContent  = fmt(TARGET_KWH-mtdKwh,0)+' to go';
   document.getElementById('sess-sub-left').textContent  = fmt(mtdSess)+' of '+fmt(TARGET_SESS)+' sessions';
   document.getElementById('sess-sub-right').textContent = fmt(TARGET_SESS-mtdSess)+' to go';
-  document.getElementById('rev-sub-left').textContent   = fmtUSD(mtdRev)+' of '+fmtUSD(TARGET_REV);
-  document.getElementById('rev-sub-right').textContent  = fmtUSD(TARGET_REV-mtdRev)+' to go';
+  document.getElementById('rev-sub-left').textContent   = fmtKHR(mtdRev)+' of '+fmtKHR(TARGET_REV);
+  document.getElementById('rev-sub-right').textContent  = fmtKHR(TARGET_REV-mtdRev)+' to go';
   document.getElementById('mtd-kwh-label').textContent  = 'MTD: '+fmt(mtdKwh,0)+' kWh';
   document.getElementById('mtd-sess-label').textContent = 'MTD: '+fmt(mtdSess);
 
